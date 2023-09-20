@@ -127,8 +127,8 @@ class Tissue:
         self.consumptionQuiescent = 0.005
         self.consumptionHealthy = 0.001
         #Proliferation param
-        self.rProlif = 0.8
-        self.rDecay = 0.1
+        self.rProlif = 0.65
+        self.rDecay = 0.15
         self.rProlifPrime = self.rProlif
         self.K = 1000
         self.inflammationResponseFactor = 0
@@ -179,24 +179,17 @@ class Tissue:
         
         #Set some parameters
         self.immuneSystem.bCellInflammation = 0.5
-        self.immuneSystem.tCellInflammation = 0.8
+        self.immuneSystem.tCellInflammation = 1.5
         self.immuneSystem.helperCellInflammation = 0.5
-        self.immuneSystem.cytokineDissipation = 0.05
-        self.immuneSystem.cytokineDiffusion = 0.15
+        self.immuneSystem.cytokineDissipation = 0.02
+        self.immuneSystem.cytokineDiffusion = 0.1
         
         #self.immuneSystem.rHelper = 1/self.ratioUpdateImmune
-        self.immuneSystem.rHelper = 0.03
-        self.immuneSystem.rBCell = 0.05
+        self.immuneSystem.rHelper = 0.05
+        self.immuneSystem.rBCell = 0.1
         self.immuneSystem.rAntibody = 1
         self.immuneSystem.rTAttack = 1
         self.immuneSystem.evasionProbability = 0.01
-        
-        
-        #Original params 2, 0.1, 0.2, 0.6, 0.5
-        self.immuneSystem.D = 0.1
-        self.immuneSystem.chi0 = 0.2
-        self.immuneSystem.alpha = 0.6
-        self.immuneSystem.k = 0.7
         
         self.immuneSystem.updateCapCytokine()
         
@@ -239,9 +232,9 @@ class Tissue:
             self.occupiedPositions[y,x] = 1
     
     def makeTumorMalignant(self):
-        self.inflammationResponseFactor = 2
-        self.rProlif = 0.99
-        self.setImmuneSuppresion(0.5)
+        self.inflammationResponseFactor = 1.5
+        self.rProlif = 0.8
+        self.setImmuneSuppresion(0.3)
     
     def getImmunePicture(self):
         tCellColorInactive = [222/255, 29/255, 29/255]
@@ -284,6 +277,8 @@ class Tissue:
         #Cells are updated in random order
         indsList = list(range(0,len(self.cells)))
         random.shuffle(indsList)
+        minCytokine = np.min(self.immuneSystem.cytokineConcentration)
+        maxCytokine = np.max(self.immuneSystem.cytokineConcentration)
         for i in indsList:
             cell = self.cells[i]
             positionsToInvade = self.getPositionsToInvade(cell.x, cell.y)
@@ -307,7 +302,7 @@ class Tissue:
                 cell.cellType = CellType.PROLIFERATING
                 
             if(cell.cellType == CellType.PROLIFERATING and not cell.isQuiescent()):
-                immuneFactor = self.getImmuneSystemFactor(cell.x, cell.y)
+                immuneFactor = self.getImmuneSystemFactor(cell.x, cell.y,minCytokine, maxCytokine)
                 reproductionProb = np.min([self.rProlifPrime*immuneFactor, 1])
                 
                 if(random.random() < reproductionProb and len(positionsToInvade) > 0):
@@ -334,13 +329,16 @@ class Tissue:
             cellPosition = cellsToAdd[i]
             self.addProliferatingCell(cellPosition[1], cellPosition[0])
             
-    def evolve(self, nSteps, tumorMovie, immuneMovie):
+    def evolve(self, nSteps, tumorMovie, immuneMovie, immuneTumorMovie):
         self.cellCountSeries = np.zeros((nSteps+1, 4))
         self.tumorSizeSeries = np.zeros(nSteps+1)
+        immuneMovieIndex = 0
         if(tumorMovie):
             self.tumorMovie = np.zeros((self.height, self.width, 3, nSteps + 1))
         if(immuneMovie):
-            self.immuneMovie = np.zeros((self.height, self.width, 3, nSteps + 1))
+            self.immuneMovie = np.zeros((self.height, self.width, 3, nSteps*self.ratioUpdateImmune + 1))
+        if(immuneTumorMovie):
+            self.immuneTumorMovie = np.zeros((self.height, self.width, 3, nSteps+1))
         
         for i in tqdm(range(0,nSteps)):
             counts = self.getCellCounts()
@@ -352,13 +350,14 @@ class Tissue:
             self.tumorSizeSeries[i] = tumorSize
             if(tumorMovie):
                 self.tumorMovie[:,:,:,i] = self.getPicture(True)
-            if(immuneMovie):
+            if(immuneTumorMovie):
                 self.immuneMovie[:,:,:,i] = self.getImmunePicture()
             
             totalCells = counts[0]+counts[1]
             self.rProlifPrime = self.rProlif*(1 - (totalCells)/self.K)
             self.updateNutrientAndECM()
-            self.updateImmuneSystem()
+            self.updateImmuneSystem(immuneMovie, immuneMovieIndex)
+            immuneMovieIndex = immuneMovieIndex + self.ratioUpdateImmune
             self.updateCells(i)
             #print(counts[0]+counts[1])
             #print(len(self.immuneSystem.helperCells))
@@ -370,8 +369,8 @@ class Tissue:
         self.tumorSizeSeries[nSteps] = self.getTumorRadius()
         if(tumorMovie):
             self.tumorMovie[:,:,:,nSteps] = self.getPicture(True)
-        if(immuneMovie):
-            self.immuneMovie[:,:,:,nSteps] = self.getImmunePicture()
+        if(immuneTumorMovie):
+            self.immuneTumorMovie[:,:,:,nSteps] = self.getImmunePicture()
             
     
     def plotTumorSizeEvolution(self,ax):
@@ -400,7 +399,7 @@ class Tissue:
     
     
     
-    def updateImmuneSystem(self):
+    def updateImmuneSystem(self, immuneMovie, index):
         
         antigenPositions = np.zeros((self.height, self.width))
         for i in range(0,len(self.cells)):
@@ -417,15 +416,17 @@ class Tissue:
         
         for i in range(0,self.ratioUpdateImmune):
             self.immuneSystem.stepImmuneAutomaton()
+            if(immuneMovie):
+                self.immuneMovie[:,:,:,index + i] = self.immuneSystem.getPicture() 
+                
     
-    def getImmuneSystemFactor(self, x, y):
+    def getImmuneSystemFactor(self, x, y,minCytokine, maxCytokine):
         index1 = y
         index2 = x
         #Inflammation will help the tumor grow
         cytokineConcentration = self.immuneSystem.cytokineConcentration[index1, index2]
-        maxCytokine = self.immuneSystem.helperCellInflammation + self.immuneSystem.bCellInflammation
-        
-        immuneSystemFactor = np.min([1 + (cytokineConcentration/maxCytokine)*(self.maxProlifImmuneBoost - 1)*self.inflammationResponseFactor, self.maxProlifImmuneBoost])
+        normalizedCytokine = (cytokineConcentration-minCytokine)/(maxCytokine - minCytokine)
+        immuneSystemFactor = np.min([1 + normalizedCytokine*(self.maxProlifImmuneBoost - 1)*self.inflammationResponseFactor, self.maxProlifImmuneBoost])
         
         #if(immuneSystemFactor > 2):
            # print("Exceeded 2: "+str(immuneSystemFactor))

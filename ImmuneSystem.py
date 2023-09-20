@@ -28,9 +28,9 @@ class ImmuneCell:
         self.delete = False
         
         #Chemotaxis parameters
-        self.D = 0.1
-        self.chi0 = 0.2
-        self.alpha = 0.6
+        self.D = 0.4
+        self.chi0 = 0.35
+        self.alpha = 0.1
         self.k = 0.5
         
         self.stepDistance = 2
@@ -55,8 +55,6 @@ class ImmuneCell:
             else:
                 i = self.y
                 j = self.x
-                
-                #p0 = 1 - (4*self.k*self.D) + (self.k*self.alpha*self.chi(c[i,j]))/(4*(1 + self.alpha*c[i,j]))*((c[i, (j+1)%automatonWidth] - c[i, (j-1)%automatonWidth])**2 + (c[(i-1)%automatonHeight,j] - c[(i+1)%automatonHeight,j])**2)-(self.k*self.chi(c[i,j]))*(c[(i+1)%automatonHeight,j] + c[(i-1)%automatonHeight,j] + c[i,(j+1)%automatonWidth] + c[i,(j-1)%automatonWidth] -4*c[i,j])
                 p0 = 0
                 p1 = (self.k*self.D) - (self.k/4)*(self.chi(c[i,j])*(c[i,(j+1)%automatonWidth] - c[i,(j-1)%automatonWidth]))
                 p2 = (self.k*self.D) + (self.k/4)*(self.chi(c[i,j])*(c[i,(j+1)%automatonWidth] - c[i,(j-1)%automatonWidth]))
@@ -66,6 +64,12 @@ class ImmuneCell:
                 probabilities = self.normalizeProbabilities([p0,p1,p2,p3,p4])
                 #print(probabilities)
                 direction = self.getDirectionWithProbabilities(probabilities)
+                
+                #print(direction)
+                #print(c[(i-1)%automatonHeight,j]-c[i,j])
+                #print(c[(i+1)%automatonHeight,j]-c[i,j])
+                #print(c[i,(j+1)%automatonWidth]-c[i,j])
+                #print(c[i,(j-1)%automatonWidth]-c[i,j])
                 
             
             if(direction == Direction.CENTER):
@@ -97,8 +101,11 @@ class ImmuneCell:
         m = np.min(pValues)
         normalizedProbabilities = []
         for i in range(0,len(pValues)):
-            normalizedProbability = (pValues[i] - m)/(M - m)
-            normalizedProbabilities.append(normalizedProbability)
+            if(pValues[i] == 0):
+                normalizedProbabilities.append(0)
+            else:
+                normalizedProbability = (pValues[i] - m)/(M - m)
+                normalizedProbabilities.append(normalizedProbability)
         normalizedProbabilities = np.array(normalizedProbabilities)/sum(normalizedProbabilities)
         return normalizedProbabilities
     
@@ -153,12 +160,12 @@ class ImmuneAutomaton:
         self.maxTCellProductionRate = 20
         self.tCellProductionRate = 1
         
-        self.maxNTCells = 300
+        self.maxNTCells = 400
         
         #Healthy case
         self.antigenAffinity = 1
         
-        self.maxTCellLife = 1000
+        self.maxTCellLife = 3000
         
         self.initializeAutomaton()
         
@@ -168,6 +175,8 @@ class ImmuneAutomaton:
         
         self.capCytokineConcentration = self.bCellInflammation + self.helperCellInflammation + self.tCellInflammation
         
+        self.tCellAutoimmuneInflammation = 0.1
+        
     def updateCapCytokine(self):
         self.capCytokineConcentration = self.bCellInflammation + self.helperCellInflammation + self.tCellInflammation
     
@@ -176,10 +185,10 @@ class ImmuneAutomaton:
     
         
     def isAntigenTrapped(self, index1, index2):
-        bCellIndex = self.getBCellIndexAtPosition(index1, index2)
-        if(bCellIndex == -1 and not [index1, index2] in self.attackedPositions):
+        if(self.isBCellAtPosition(index1, index2) and self.antibodyGrid[index1, index2] == 1):
+            return True
+        else:
             return False
-        return True
     
     def wasDisposed(self, i,j):
         return [i,j] in self.attackedPositions
@@ -188,8 +197,8 @@ class ImmuneAutomaton:
         self.antigenPositions = antigenPositions
         
     def activateImmuneDisease(self):
-        self.antigenAffinity = 0.3
-        self.rTAttack = 0.3
+        self.antigenAffinity = 0.1
+        self.rAntibody = 0.1
     
     def getActiveTCellNumber(self):
         activeTCells = 0
@@ -203,8 +212,10 @@ class ImmuneAutomaton:
         self.attackedPositions = []
     
     def addCytokine(self, quantity,i,j):
-        if(self.cytokineConcentration[i,j] +quantity <= self.capCytokineConcentration and self.cytokineConcentration[i,j] + quantity > 0 ):
-            self.cytokineConcentration[i,j] = self.cytokineConcentration[i,j] + quantity
+        self.cytokineConcentration[i,j] = self.cytokineConcentration[i,j] + quantity
+        
+        #if(self.cytokineConcentration[i,j] +quantity <= self.capCytokineConcentration and self.cytokineConcentration[i,j] + quantity > 0 ):
+            #self.cytokineConcentration[i,j] = self.cytokineConcentration[i,j] + quantity
         #elif(self.cytokineConcentration[i,j] +quantity >=self.capCytokineConcentration):
             #print("Exceeded "+str(quantity))
             #print(self.cytokineDissipation)
@@ -269,8 +280,8 @@ class ImmuneAutomaton:
                     self.tCells[i].setActive(True)
             
             #Autoimmune effect. The parameter antigenAffinity can be taken as an indicator of how sick the system is
-            elif(random.random() < 1 - self.antigenAffinity and not (index1 == 0 or index2 == 0)):
-                self.addCytokine(self.tCellInflammation, index1, index2)
+            elif(random.random() < 1 - self.antigenAffinity):
+                self.addCytokine(self.tCellAutoimmuneInflammation, index1, index2)
                 if(not self.tCells[i].isActive()):
                     self.tCells[i].setActive(True)
             
