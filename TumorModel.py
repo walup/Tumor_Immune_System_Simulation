@@ -128,7 +128,7 @@ class Tissue:
         self.consumptionHealthy = 0.001
         #Proliferation param
         self.rProlif = 0.65
-        self.rDecay = 0.15
+        self.rDecay = 0.3
         self.rProlifPrime = self.rProlif
         self.K = 1000
         self.inflammationResponseFactor = 0
@@ -353,8 +353,9 @@ class Tissue:
             if(immuneTumorMovie):
                 self.immuneMovie[:,:,:,i] = self.getImmunePicture()
             
-            totalCells = counts[0]+counts[1]
-            self.rProlifPrime = self.rProlif*(1 - (totalCells)/self.K)
+            totalCells = counts[0]
+            self.rProlifPrime = self.rProlif*(1 - totalCells/self.K)
+            #print(totalCells)
             self.updateNutrientAndECM()
             self.updateImmuneSystem(immuneMovie, immuneMovieIndex)
             immuneMovieIndex = immuneMovieIndex + self.ratioUpdateImmune

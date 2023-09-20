@@ -175,7 +175,7 @@ class ImmuneAutomaton:
         
         self.capCytokineConcentration = self.bCellInflammation + self.helperCellInflammation + self.tCellInflammation
         
-        self.tCellAutoimmuneInflammation = 0.1
+        self.tCellAutoimmuneInflammation = 0.25
         
     def updateCapCytokine(self):
         self.capCytokineConcentration = self.bCellInflammation + self.helperCellInflammation + self.tCellInflammation
@@ -197,7 +197,7 @@ class ImmuneAutomaton:
         self.antigenPositions = antigenPositions
         
     def activateImmuneDisease(self):
-        self.antigenAffinity = 0.1
+        self.antigenAffinity = 0.5
         self.rAntibody = 0.1
     
     def getActiveTCellNumber(self):
