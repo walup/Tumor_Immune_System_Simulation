@@ -6,7 +6,10 @@ Here's a video of how the simulation looks like:
 
 
 
-https://github.com/walup/Tumor_Immune_System_Simulation/assets/30901939/cf9d0d5d-2f62-43da-b3d1-2ccba83eaeaf
+https://github.com/walup/Tumor_Immune_System_Simulation/assets/30901939/58347857-a4f0-4dd6-b387-21ed96c3099b
+
+
+
 
 
 
