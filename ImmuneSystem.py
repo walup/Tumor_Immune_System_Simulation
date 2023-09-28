@@ -200,6 +200,10 @@ class ImmuneAutomaton:
         self.antigenAffinity = 0.5
         self.rAntibody = 0.1
     
+    def activateImmuneDiseaseWithValues(self, antigenAffinity, rAntibody):
+        self.antigenAffinity = antigenAffinity
+        self.rAntibody = rAntibody
+    
     def getActiveTCellNumber(self):
         activeTCells = 0
         for i in range(0,len(self.tCells)):
