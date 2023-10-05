@@ -133,7 +133,7 @@ class Tissue:
         self.K = 1000
         self.inflammationResponseFactor = 0
         
-        self.maxProlifImmuneBoost = 3
+        self.maxProlifImmuneBoost = 2
         self.ratioUpdateImmune = 10
         
         self.initializeNutrientAndECM()
