@@ -133,13 +133,15 @@ class Tissue:
         self.K = 1000
         self.inflammationResponseFactor = 0
         
-        self.maxProlifImmuneBoost = 2
+        self.maxProlifImmuneBoost = 3
         self.ratioUpdateImmune = 10
         
         self.initializeNutrientAndECM()
         self.initializeImmuneSystem()
         
         self.rSuppresion = 0
+        
+        self.therapy = None
     
     
     def initializeNutrientAndECM(self):
@@ -235,6 +237,12 @@ class Tissue:
         self.inflammationResponseFactor = 1.5
         self.rProlif = 0.8
         self.setImmuneSuppresion(0.3)
+    
+    def makeTumorMalignantSet(self, inflammationResponseFactor):
+        self.inflammationResponseFactor = inflammationResponseFactor
+        self.rProlif = 0.8
+        self.setImmuneSuppresion(0.3)
+        
     
     def getImmunePicture(self):
         tCellColorInactive = [222/255, 29/255, 29/255]
@@ -357,6 +365,7 @@ class Tissue:
             self.rProlifPrime = self.rProlif*(1 - totalCells/self.K)
             #print(totalCells)
             self.updateNutrientAndECM()
+            self.updateTherapy(i)
             self.updateImmuneSystem(immuneMovie, immuneMovieIndex)
             immuneMovieIndex = immuneMovieIndex + self.ratioUpdateImmune
             self.updateCells(i)
@@ -463,3 +472,15 @@ class Tissue:
     def removeCell(self, cell):
         self.cells.remove(cell)
         self.occupiedPositions[cell.y, cell.x] = 0
+        
+    #Therapy methods
+    
+    def addTherapy(self, therapy):
+        self.therapy = therapy
+    
+    def updateTherapy(self, step):
+        if(self.therapy != None):
+            self.therapy.updateTherapy(step, self)
+    
+    
+        

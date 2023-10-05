@@ -177,6 +177,8 @@ class ImmuneAutomaton:
         
         self.tCellAutoimmuneInflammation = 0.25
         
+        self.eliminationProb = 0
+        
     def updateCapCytokine(self):
         self.capCytokineConcentration = self.bCellInflammation + self.helperCellInflammation + self.tCellInflammation
     
@@ -284,7 +286,7 @@ class ImmuneAutomaton:
                     self.tCells[i].setActive(True)
             
             #Autoimmune effect. The parameter antigenAffinity can be taken as an indicator of how sick the system is
-            elif(random.random() < 1 - self.antigenAffinity):
+            elif(random.random() < 1 - self.antigenAffinity and random.random() < self.rTAttack):
                 self.addCytokine(self.tCellAutoimmuneInflammation, index1, index2)
                 if(not self.tCells[i].isActive()):
                     self.tCells[i].setActive(True)
@@ -295,11 +297,22 @@ class ImmuneAutomaton:
             if(self.tCells[i].getLife() > self.maxTCellLife):
                 self.tCells[i].setDelete(True)
         
+        self.updateSuppressionEffect()
+        
         #Eliminate cells that are scheduled to be removed
         self.removeEliminatedCells()
         self.spawnCytokines()
         #Diffuse cytokine 
         self.diffuseCytokines()
+    
+    def updateSuppressionEffect(self):
+        nCells = len(self.tCells)
+        if(nCells > self.maxNTCells):
+            eliminationProb = self.eliminationProb/nCells
+            for i in range(0,nCells):
+                if(random.random() < eliminationProb):
+                    self.tCells[i].setDelete(True)
+        
         
     def removeEliminatedCells(self):
         bCellsToRemove = []
