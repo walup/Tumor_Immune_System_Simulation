@@ -4,7 +4,11 @@ It's still in the works, so far the dynamics that we get resembles a control sys
 
 Here's a video of how the simulation looks like:
 
-https://github.com/walup/Tumor_Immune_System_Simulation/assets/30901939/a766c570-926b-43a1-ba62-2f38ee121440
+
+
+https://github.com/walup/Tumor_Immune_System_Simulation/assets/30901939/5f90b43b-c650-4bc9-b812-354e6e735d65
+
+
 
 <ul>
 <li>Yellow dots are cancer cells that have not been marked by the immune system.</li>
