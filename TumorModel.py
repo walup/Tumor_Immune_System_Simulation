@@ -18,6 +18,10 @@ class Cell:
         self.cellType = cellType
         self.oxygenThreshold = 0.001
         self.quiescent = False
+        self.radioAffected = False
+        self.chemoAffected = False
+        self.countCycle = 0
+        
     
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y
@@ -35,6 +39,8 @@ class Cell:
     def isQuiescent(self):
         return self.quiescent
         
+    def isDead(self):
+        return self.cellType == CellType.NECROTIC or self.cellType == CellType.DEAD
 
 class Nutrient:
     
@@ -101,7 +107,7 @@ class ECM:
     
     def updateMatrix(self, nNeighbors,i,j):
         deltaECM = -self.ec*nNeighbors*self.extraCellularMatrix[i,j]
-        self.extraCellularMatrix[i,j] = np.max([0,self.extraCellularMatrix[i,j] + deltaECM])
+        self.extraCellularMatrix[i,j] = self.extraCellularMatrix[i,j] + deltaECM
     
     def canInvadePosition(self, i, j):
         if(self.extraCellularMatrix[i,j]<self.et):
@@ -119,17 +125,17 @@ class Tissue:
         self.cells = []
         self.colorNecrotic = [176/255, 176/255, 176/255]
         #ECM Params
-        self.ec = 0.1
-        self.et = 0.9
+        self.ec = 0.15
+        self.et = 0.05
         #Nutrient params
-        self.diffusionConstant = 0.1
-        self.consumptionProlif = 0.008
+        self.diffusionConstant = 0.01
+        self.consumptionProlif = 0.01
         self.consumptionQuiescent = 0.005
         self.consumptionHealthy = 0.001
         #Proliferation param
         self.rProlif = 0.65
-        self.rDecay = 0.3
-        self.rProlifPrime = self.rProlif
+        self.rDecay = 0.4
+        self.rProlifPrime = 0.65
         self.K = 1000
         self.inflammationResponseFactor = 0
         
@@ -141,7 +147,7 @@ class Tissue:
         
         self.rSuppresion = 0
         
-        self.therapy = None
+        self.therapies = []
     
     
     def initializeNutrientAndECM(self):
@@ -183,15 +189,22 @@ class Tissue:
         self.immuneSystem.bCellInflammation = 0.5
         self.immuneSystem.tCellInflammation = 1.5
         self.immuneSystem.helperCellInflammation = 0.5
-        self.immuneSystem.cytokineDissipation = 0.02
-        self.immuneSystem.cytokineDiffusion = 0.1
+        #self.immuneSystem.cytokineDissipation = 0.02*(self.ratioUpdateImmune/10)
+        #self.immuneSystem.cytokineDiffusion = 0.1*(self.ratioUpdateImmune/10)
         
         #self.immuneSystem.rHelper = 1/self.ratioUpdateImmune
-        self.immuneSystem.rHelper = 0.05
-        self.immuneSystem.rBCell = 0.1
+        #self.immuneSystem.rHelper = 0.05*(self.ratioUpdateImmune/10)
+        #self.immuneSystem.rBCell = 0.1*(self.ratioUpdateImmune/10)
         self.immuneSystem.rAntibody = 1
         self.immuneSystem.rTAttack = 1
-        self.immuneSystem.evasionProbability = 0.01
+        #self.immuneSystem.evasionProbability = 0.02*(self.ratioUpdateImmune/10)
+        self.immuneSystem.cytokineDissipation = 0.02
+        self.immuneSystem.cytokineDiffusion = 0.1
+        self.immuneSystem.rHelper = 0.1
+        self.immuneSystem.rBCell = 0.1
+        
+        
+        
         
         self.immuneSystem.updateCapCytokine()
         
@@ -201,17 +214,17 @@ class Tissue:
         for i in range(-1,2):
             for j in range(-1,2):
                 if(i != 0 or j != 0):
-                    sumNeighbors = sumNeighbors + self.occupiedPositions[(y + i)%self.height, (x + i)%self.height]
+                    sumNeighbors = sumNeighbors + self.occupiedPositions[(y + i)%self.height, (x + j)%self.width]
         return sumNeighbors
     
     def getPositionsToInvade(self, x, y):
         positions = []
         for i in range(-1,2):
             for j in range(-1,2):
-                row = (y + i)%self.height
-                col = (x + j)%self.width
-                if( (i != 0 or j != 0) and self.occupiedPositions[row,col] == 0 and self.necroticPositions[row,col] == 0):
-                    positions.append([row,col])
+                index1 = (y + i)%self.height
+                index2 = (x + j)%self.width
+                if((i != 0 or j != 0) and self.occupiedPositions[index1,index2] == 0 and self.necroticPositions[index1,index2] == 0):
+                    positions.append([index1,index2])
         
         return positions
     
@@ -222,7 +235,8 @@ class Tissue:
                 self.ecm.updateMatrix(nNeighbors, i, j)
                 if(self.occupiedPositions[i,j] == 0):
                     self.nutrient.updateNutrient(None, j, i)
-                
+        
+        
         #Update nutrient where cells are occupied
         for i in range(0,len(self.cells)):
             self.nutrient.updateNutrient(self.cells[i],self.cells[i].x, self.cells[i].y)
@@ -289,6 +303,7 @@ class Tissue:
         maxCytokine = np.max(self.immuneSystem.cytokineConcentration)
         for i in indsList:
             cell = self.cells[i]
+            cell.countCycle = cell.countCycle + 1
             positionsToInvade = self.getPositionsToInvade(cell.x, cell.y)
             if(len(positionsToInvade) > 0 and cell.isQuiescent()):
                 cell.setQuiescent(False)
@@ -310,16 +325,16 @@ class Tissue:
                 cell.cellType = CellType.PROLIFERATING
                 
             if(cell.cellType == CellType.PROLIFERATING and not cell.isQuiescent()):
-                immuneFactor = self.getImmuneSystemFactor(cell.x, cell.y,minCytokine, maxCytokine)
+                immuneFactor = self.getImmuneSystemFactor(cell.x, cell.y, minCytokine, maxCytokine)
                 reproductionProb = np.min([self.rProlifPrime*immuneFactor, 1])
                 
-                if(random.random() < reproductionProb and len(positionsToInvade) > 0):
-                    random.shuffle(positionsToInvade)
-                    for p in range(0,len(positionsToInvade)):
+                if(random.random() < reproductionProb):
+                    indsPositions = list(range(0,len(positionsToInvade)))
+                    random.shuffle(indsPositions)
+                    for p in indsPositions:
                         candidatePosition = positionsToInvade[p]
-                        if(self.ecm.canInvadePosition(candidatePosition[0], candidatePosition[1])):
-                            newCell = random.choice(positionsToInvade)
-                            cellsToAdd.append(newCell)
+                        if(self.ecm.canInvadePosition(candidatePosition[0], candidatePosition[1]) and not candidatePosition in cellsToAdd):
+                            cellsToAdd.append(candidatePosition)
                             break
                     
             elif(cell.cellType == CellType.DEAD):
@@ -476,11 +491,12 @@ class Tissue:
     #Therapy methods
     
     def addTherapy(self, therapy):
-        self.therapy = therapy
+        self.therapies.append(therapy)
     
     def updateTherapy(self, step):
-        if(self.therapy != None):
-            self.therapy.updateTherapy(step, self)
+        if(len(self.therapies) > 0):
+            for i in range(0,len(self.therapies)):
+                self.therapies[i].updateTherapy(step, self)
     
     
         

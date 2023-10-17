@@ -178,6 +178,7 @@ class ImmuneAutomaton:
         self.tCellAutoimmuneInflammation = 0.25
         
         self.eliminationProb = 0
+        self.boundarySpawn = True
         
     def updateCapCytokine(self):
         self.capCytokineConcentration = self.bCellInflammation + self.helperCellInflammation + self.tCellInflammation
@@ -225,6 +226,33 @@ class ImmuneAutomaton:
         #elif(self.cytokineConcentration[i,j] +quantity >=self.capCytokineConcentration):
             #print("Exceeded "+str(quantity))
             #print(self.cytokineDissipation)
+            
+    def spawnNewTCell(self, inBoundary):
+        
+        if(inBoundary):
+            boundaryIndex = random.randint(0,3)
+            #Upper boundary
+            if(boundaryIndex == 0):
+                randPos = random.randint(0,self.automatonWidth-1)
+                self.addTCell(0,randPos)
+                #Bottom boundary
+            elif(boundaryIndex == 1):
+                randPos = random.randint(0,self.automatonWidth-1)
+                self.addTCell(self.automatonHeight-1, randPos)
+            #Left boundary
+            elif(boundaryIndex == 2):
+                randPos = random.randint(0,self.automatonHeight-1)
+                self.addTCell(randPos, 0)
+            #Right boundary
+            elif(boundaryIndex == 3):
+                randPos = random.randint(0,self.automatonHeight-1)
+                self.addTCell(randPos, self.automatonWidth-1)
+        else:
+            index1 = random.randint(0,self.automatonHeight-1)
+            index2 = random.randint(0,self.automatonWidth-1)
+            
+            self.addTCell(index1, index2)
+        
     
     def stepImmuneAutomaton(self):
         #Update the T-Cell Rate depending on the number of active T-Cells
@@ -234,24 +262,7 @@ class ImmuneAutomaton:
         #Add new random new cells in the border of the automaton
         if(len(self.tCells) < self.maxNTCells):
             for i in range(0,self.tCellProductionRate):
-                #Select a random boundary 
-                boundaryIndex = random.randint(0,3)
-                #Upper boundary
-                if(boundaryIndex == 0):
-                    randPos = random.randint(0,self.automatonWidth-1)
-                    self.addTCell(0,randPos)
-                #Bottom boundary
-                elif(boundaryIndex == 1):
-                    randPos = random.randint(0,self.automatonWidth-1)
-                    self.addTCell(self.automatonHeight-1, randPos)
-                #Left boundary
-                elif(boundaryIndex == 2):
-                    randPos = random.randint(0,self.automatonHeight-1)
-                    self.addTCell(randPos, 0)
-                #Right boundary
-                elif(boundaryIndex == 3):
-                    randPos = random.randint(0,self.automatonHeight-1)
-                    self.addTCell(randPos, self.automatonWidth-1)
+                self.spawnNewTCell(self.boundarySpawn)
         
         #Update H-Cells, B-Cells, and antibodies
         self.updateHCells()
@@ -308,9 +319,8 @@ class ImmuneAutomaton:
     def updateSuppressionEffect(self):
         nCells = len(self.tCells)
         if(nCells > self.maxNTCells):
-            eliminationProb = self.eliminationProb/nCells
             for i in range(0,nCells):
-                if(random.random() < eliminationProb):
+                if(random.random() < self.eliminationProb):
                     self.tCells[i].setDelete(True)
         
         
