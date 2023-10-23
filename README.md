@@ -1,7 +1,5 @@
 A simulation of the interaction between a tumor and the immune system. 
 
-It's still in the works, so far the dynamics that we get resembles a control system, where immune complexes oscillate in order to keep the number of cancer cells approximately constant.
-
 Here's a video of how the simulation looks like:
 
 
