@@ -1,6 +1,6 @@
 A simulation of the interaction between a tumor and the immune system. 
 
-Here's a video of how the simulation looks like:
+Here's a video of what the simulation looks like:
 
 
 
