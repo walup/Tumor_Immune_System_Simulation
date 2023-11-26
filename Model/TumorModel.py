@@ -136,7 +136,7 @@ class Tissue:
         #Proliferation param
         self.rProlif = 0.55
         self.rDecay = 0.4
-        self.rProlifPrime = 0.55
+        self.rProlifPrime = 0.65
         self.K = 1000
         self.inflammationResponseFactor = 0
         
@@ -226,7 +226,7 @@ class Tissue:
     
     def makeTumorMalignant(self):
         self.inflammationResponseFactor = 1.5
-        self.rProlif = 0.7
+        self.rProlif = 0.8
         self.setImmuneSuppresion(0.3)
     
     def makeTumorMalignantSet(self, inflammationResponseFactor):

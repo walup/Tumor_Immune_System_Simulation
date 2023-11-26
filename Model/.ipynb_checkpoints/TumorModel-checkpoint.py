@@ -134,7 +134,7 @@ class Tissue:
         self.consumptionQuiescent = 0.005
         self.consumptionHealthy = 0.001
         #Proliferation param
-        self.rProlif = 0.65
+        self.rProlif = 0.55
         self.rDecay = 0.4
         self.rProlifPrime = 0.65
         self.K = 1000

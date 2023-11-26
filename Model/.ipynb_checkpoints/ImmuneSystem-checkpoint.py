@@ -157,7 +157,7 @@ class ImmuneAutomaton:
         self.cytokineDissipation = 0.02
         self.cytokineDiffusion = 0.1
         
-        self.rHelper = 0.05
+        self.rHelper = 0.1
         self.rBCell = 0.1
         self.rTAttack = 1
         self.rAntibody = 1
@@ -414,7 +414,8 @@ class ImmuneAutomaton:
                     elif(self.antigenPositions[i,j] == 0 and self.helperCellPositions[i,j] == 1):
                         self.helperCellPositions[i,j] = 0
                         indexCell = self.getHCellIndexAtPosition(i,j)
-                        self.helperCells[indexCell].setDelete(True)
+                        if(indexCell != -1):
+                            self.helperCells[indexCell].setDelete(True)
                     
             
         
