@@ -157,7 +157,7 @@ class ImmuneAutomaton:
         self.cytokineDissipation = 0.02
         self.cytokineDiffusion = 0.1
         
-        self.rHelper = 0.05
+        self.rHelper = 0.1
         self.rBCell = 0.1
         self.rTAttack = 1
         self.rAntibody = 1
