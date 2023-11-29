@@ -525,6 +525,83 @@ class ImmuneAutomaton:
         
         return picture
     
+    def getRefinedPicture(self):
+        picture = np.ones((self.automatonHeight, self.automatonWidth, 3))
+        if(self.antigenType == AntigenType.EXTERNAL):
+            antigenColor = [63/255, 237/255, 47/255]
+            antibodyColor = [46/255, 166/255, 240/255]
+            helperCellColor = [255/255, 153/255, 0/255]
+            bCellColor = [133/255, 103/255, 62/255]
+            macrophageColor = [255/255, 41/255, 66/255]
+            
+            
+            
+            for i in range(0,self.automatonHeight):
+                for j in range(0,self.automatonWidth):
+                    if(self.antigenPositions[i,j] == 1):
+                        picture[i,j,:] = antigenColor
+                    
+            
+            for i in range(0,len(self.helperCells)):
+                cell = self.helperCells[i]
+                index1 = cell.y
+                index2 = cell.x
+                picture[index1, index2,:] = helperCellColor
+                
+            
+            for i in range(0,len(self.bCells)):
+                cell = self.bCells[i]
+                index1 = cell.y
+                index2 = cell.x
+                picture[index1, index2,:] = bCellColor
+            
+            
+            for i in range(0,self.automatonHeight):
+                for j in range(0,self.automatonWidth):
+                    if(self.antibodyGrid[i,j] == 1):
+                        picture[i,j,:] = antibodyColor
+                    
+            
+            for i in range(0,len(self.tCells)):
+                cell = self.tCells[i]
+                index1 = cell.y
+                index2 = cell.x
+                picture[index1, index2, :] = macrophageColor
+                
+            
+            return picture
+        
+        elif(self.antigenType == AntigenType.CELL):
+            
+            antigenColor = [63/255, 237/255, 47/255]
+            antibodyColor = [46/255, 166/255, 240/255]
+            helperCellColor = [255/255, 153/255, 0/255]
+            bCellColor = [133/255, 103/255, 62/255]
+            macrophageColor = [255/255, 41/255, 66/255]
+            
+            
+            
+            for i in range(0,self.automatonHeight):
+                for j in range(0,self.automatonWidth):
+                    if(self.antigenPositions[i,j] == 1):
+                        picture[i,j,:] = antigenColor
+                    
+            
+            for i in range(0,len(self.helperCells)):
+                cell = self.helperCells[i]
+                index1 = cell.y
+                index2 = cell.x
+                picture[index1, index2,:] = helperCellColor
+                    
+            
+            for i in range(0,len(self.tCells)):
+                cell = self.tCells[i]
+                index1 = cell.y
+                index2 = cell.x
+                picture[index1, index2, :] = macrophageColor
+            
+            return picture
+    
     
     def evolveWithMovie(self,nSteps):
         movie = np.zeros((self.automatonHeight, self.automatonWidth, 3, nSteps + 1))
