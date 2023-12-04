@@ -525,6 +525,20 @@ class ImmuneAutomaton:
         
         return picture
     
+    def getCellCounts(self):
+        antigenCount = sum(sum(self.antigenPositions))
+        hCounts = len(self.helperCells)
+        bCounts = len(self.bCells)
+        antibodyCounts = sum(sum(self.antibodyGrid))
+        activeKillerCells = 0
+        
+        for i in range(0,len(self.tCells)):
+            cell = self.tCells[i]
+            if(cell.isActive()):
+                activeKillerCells = activeKillerCells + 1
+        
+        return np.array([antigenCount, hCounts, bCounts, antibodyCounts, activeKillerCells])
+    
     def getRefinedPicture(self):
         picture = np.ones((self.automatonHeight, self.automatonWidth, 3))
         if(self.antigenType == AntigenType.EXTERNAL):
