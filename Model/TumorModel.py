@@ -264,8 +264,31 @@ class Tissue:
         
         
         return picture
+    
+    def getSimplifiedPicture(self):
+        tCellColor = [255/255, 41/255, 66/255]
+        tCells = self.immuneSystem.tCells
+        picture = np.ones((self.height, self.width, 3))
+        for i in range(0,len(self.cells)):
+            cell = self.cells[i]
+            index1 = cell.y
+            index2 = cell.x
+            if(cell.cellType == CellType.PROLIFERATING or cell.cellType == CellType.COMPLEX):
+                picture[index1, index2, :] = CellType.PROLIFERATING.value
+        
+        for i in range(0,len(tCells)):
+            tCell = tCells[i]
+            index1 = tCell.y
+            index2 = tCell.x
+            picture[index1, index2,:] = tCellColor
+                
+        for i in range(0,np.size(self.necroticPositions,0)):
+            for j in range(0,np.size(self.necroticPositions,0)):
+                if(self.necroticPositions[i,j] == 1):
+                    picture[i,j,:] = CellType.NECROTIC.value
         
         
+        return picture
                 
         
     
@@ -351,7 +374,7 @@ class Tissue:
             if(tumorMovie):
                 self.tumorMovie[:,:,:,i] = self.getPicture(True)
             if(immuneTumorMovie):
-                self.immuneMovie[:,:,:,i] = self.getImmunePicture()
+                self.immuneTumorMovie[:,:,:,i] = self.getSimplifiedPicture()
             
             totalCells = counts[0]
             self.rProlifPrime = self.rProlif*(1 - totalCells/self.K)
@@ -372,7 +395,7 @@ class Tissue:
         if(tumorMovie):
             self.tumorMovie[:,:,:,nSteps] = self.getPicture(True)
         if(immuneTumorMovie):
-            self.immuneTumorMovie[:,:,:,nSteps] = self.getImmunePicture()
+            self.immuneTumorMovie[:,:,:,nSteps] = self.getSimplifiedPicture()
             
     
     def plotTumorSizeEvolution(self,ax):
